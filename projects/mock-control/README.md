@@ -1,22 +1,133 @@
 # mock-control
 
-Runtime-configurable [MSW](https://mswjs.io) mocks, and a panel to change them
-while the app runs: slow an endpoint down, fail it, empty it, hold a request until
-you let it go, or swap in a different response. Settings survive a reload.
+Runtime-configurable [MSW](https://mswjs.io) mocks for Angular apps, and a panel to
+change them while the app runs: slow an endpoint down, fail it, empty it, hold a request
+until you let it go, or swap in a different response. Settings survive a reload.
 
 Built so a room can watch a page misbehave on purpose: what does this screen do
 when the reviews service takes three seconds? When the holds request fails? When two
 responses arrive out of order?
 
-Published as `@hypertheory-labs/mock-control`.
+Published as `@hypertheory-labs/mock-control`. **Angular only.**
 
-## Two halves
+## Requirements
 
-- **`core/`: framework-free.** `configurable()`, the store, the presets. MSW handlers
-  run in the page (the service worker only forwards requests), so they read the store
-  directly. No Angular imports here, ever.
-- **`panel/`: Angular.** `<app-mock-panel />` (the "Mocks" button, bottom left) and
-  `MockControl`, the store exposed as signals.
+- Angular 22, with MSW 2.
+- **Tailwind CSS v4 and daisyUI 5 in the app.** The panel uses their classes and ships no
+  styles of its own. This is a stopgap; see step 5 below.
+
+## Setup
+
+### 1. Install
+
+```sh
+npm install -D @hypertheory-labs/mock-control msw
+npx msw init public --save
+```
+
+`msw init` copies `mockServiceWorker.js` into `public/`, so it's served from the root.
+In a multi-project workspace, use that project's `public/` directory.
+
+### 2. Write the handlers
+
+```ts
+// src/mocks/handlers.ts
+import { HttpResponse } from 'msw';
+import { configurable } from '@hypertheory-labs/mock-control';
+
+export const handlers = [
+  configurable(
+    { id: 'catalog.title', label: 'Catalog: title', method: 'GET', path: `${catalog}/titles/:id` },
+    ({ params }) => HttpResponse.json(findTitle(params['id'])),
+  ),
+];
+```
+
+See [Using it](#using-it) for variants, array endpoints, and pass-through.
+
+### 3. Create the worker
+
+```ts
+// src/mocks/browser.ts
+import { setupWorker } from 'msw/browser';
+import { mockStore } from '@hypertheory-labs/mock-control';
+import { handlers } from './handlers';
+
+export const worker = setupWorker(...handlers);
+
+// ?mock=flaky (or any preset name) applies that scenario on load, so you can hand out a link.
+const preset = new URLSearchParams(location.search).get('mock');
+if (preset) mockStore.applyPreset(preset);
+```
+
+### 4. Start it before bootstrapping, in development only
+
+```ts
+// src/main.ts
+import { bootstrapApplication } from '@angular/platform-browser';
+import { isDevMode } from '@angular/core';
+import { appConfig } from './app/app.config';
+import { App } from './app/app';
+
+async function startMocks() {
+  if (!isDevMode()) return;
+  const { worker } = await import('./mocks/browser');
+  await worker.start({ quiet: true, onUnhandledRequest: 'bypass' });
+}
+
+await startMocks();
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));
+```
+
+`onUnhandledRequest: 'bypass'` lets anything without a handler go to the network.
+
+### 5. Add the panel, deferred
+
+```ts
+// src/app/app.ts
+import { Component, isDevMode } from '@angular/core';
+import { MockPanel } from '@hypertheory-labs/mock-control';
+
+@Component({
+  selector: 'app-root',
+  imports: [MockPanel],
+  template: `
+    <!-- ...the app... -->
+    @if (isDev) {
+      @defer (on idle) {
+        <app-mock-panel />
+      }
+    }
+  `,
+})
+export class App {
+  protected readonly isDev = isDevMode();
+}
+```
+
+Then tell Tailwind to look inside the package for the panel's classes. Tailwind skips
+`node_modules` unless it's told otherwise:
+
+```css
+/* src/styles.css */
+@import 'tailwindcss';
+@source '../node_modules/@hypertheory-labs/mock-control';
+@plugin 'daisyui';
+```
+
+### Keeping it out of production
+
+Both entry points are dynamic imports behind `isDevMode()`: the `import()` in `main.ts`,
+and the `@defer` block, which Angular turns into one. In a production build, the panel,
+the store, your handlers, and MSW land only in lazy chunks, and nothing loads them.
+**Measured** on an Angular 22 production build: none of the initial chunks reference them.
+
+**They are still emitted and deployed**, and so is `public/mockServiceWorker.js`. "Never
+loaded" isn't the same as "not shipped."
+
+**One static import undoes this.** Importing `./mocks/browser` (or anything from it)
+anywhere outside those two places pulls it into the initial bundle. So does using
+`<app-mock-panel />` outside a `@defer` block.
 
 ## What `configurable()` does with a request
 
@@ -52,17 +163,6 @@ request already in flight.
 
 ### A mocked endpoint
 
-```ts
-import { configurable } from '@hypertheory-labs/mock-control';
-
-export const handlers = [
-  configurable(
-    { id: 'catalog.title', label: 'Catalog: title', method: 'GET', path: `${catalog}/titles/:id` },
-    ({ params }) => HttpResponse.json(findTitle(params['id'])),
-  ),
-];
-```
-
 - **`id`** is the key settings are saved under. Keep it stable.
 - **`returnsArray: true`** offers "return an empty array" in the panel.
 - A third argument, **`variants`**, offers named alternative responses:
@@ -90,21 +190,6 @@ real server's.
 
 **Mocks are for things you only read; things that remember are a real API.** An
 endpoint whose data the app changes gets a pass-through entry, not a mock.
-
-### Wiring it into an app
-
-```ts
-// mocks/browser.ts
-export const worker = setupWorker(...handlers);
-const preset = new URLSearchParams(location.search).get('mock');
-if (preset) mockStore.applyPreset(preset); // ?mock=flaky: a link that sets the scenario
-
-// main.ts: start the worker (dev only) before bootstrapping
-await worker.start({ quiet: true, onUnhandledRequest: 'bypass' });
-
-// app.ts template
-<app-mock-panel />
-```
 
 ## The panel
 
@@ -146,3 +231,10 @@ from a test or a console: remove the key and reload.
   are per endpoint, app-wide.
 - **Macros**: a named sequence of settings for a lab step ("make holds fail, then
   recover").
+
+## For contributors
+
+`src/lib/core/` never imports Angular. MSW handlers run in the page, outside Angular's
+injector (the service worker only forwards requests), so `configurable()` reads the
+store directly. `src/lib/panel/` wraps the same store in signals (`MockControl`). This
+is a rule about the code, not a promise to users: the package is Angular only.
