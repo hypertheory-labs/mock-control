@@ -8,7 +8,7 @@ Built so a room can watch a page misbehave on purpose: what does this screen do
 when the reviews service takes three seconds? When the holds request fails? When two
 responses arrive out of order?
 
-Imported in this workspace as `mock-control`, through `tsconfig` paths to source.
+Published as `@hypertheory-labs/mock-control`.
 
 ## Two halves
 
@@ -53,7 +53,7 @@ request already in flight.
 ### A mocked endpoint
 
 ```ts
-import { configurable } from 'mock-control';
+import { configurable } from '@hypertheory-labs/mock-control';
 
 export const handlers = [
   configurable(

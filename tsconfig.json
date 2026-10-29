@@ -8,7 +8,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "noImplicitReturns": true,
     "paths": {
-      "mock-control": ["./projects/mock-control/src/public-api.ts"]
+      "@hypertheory-labs/mock-control": ["./projects/mock-control/src/public-api.ts"]
     },
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
