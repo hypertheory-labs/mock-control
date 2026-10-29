@@ -129,6 +129,57 @@ loaded" isn't the same as "not shipped."
 anywhere outside those two places pulls it into the initial bundle. So does using
 `<mock-panel />` outside a `@defer` block.
 
+### Leaving it out of the build entirely
+
+If you don't want the chunks deployed at all, swap the dev tools for a stub in
+production builds. Put everything dev-only in one file:
+
+```ts
+// src/dev-tools.ts
+import { Component } from '@angular/core';
+import { MockPanel } from '@hypertheory-labs/mock-control';
+
+export async function startMocks() {
+  const { worker } = await import('./mocks/browser');
+  await worker.start({ quiet: true, onUnhandledRequest: 'bypass' });
+}
+
+@Component({ selector: 'app-dev-tools', imports: [MockPanel], template: `<mock-panel />` })
+export class DevTools {}
+```
+
+and a stub with the same exports:
+
+```ts
+// src/dev-tools.prod.ts
+import { Component } from '@angular/core';
+
+export async function startMocks() {}
+
+@Component({ selector: 'app-dev-tools', template: `` })
+export class DevTools {}
+```
+
+`main.ts` calls `await startMocks()` with no `isDevMode()` check, and the app template
+uses `<app-dev-tools />` with no `@if` or `@defer`. Then, in `angular.json`, under the
+production configuration:
+
+```json
+"fileReplacements": [
+  { "replace": "src/dev-tools.ts", "with": "src/dev-tools.prod.ts" }
+],
+"assets": [
+  { "glob": "**/*", "input": "public", "ignore": ["mockServiceWorker.js"] }
+]
+```
+
+**Measured** on an Angular 22 production build: nothing from mock-control, your handlers,
+or MSW is in the output, and neither is the worker file. A development build still has
+all of it.
+
+**The stub is only type-checked in production builds.** If `dev-tools.ts` gains an export
+the stub doesn't have, `ng serve` is fine and `ng build` fails.
+
 ## What `configurable()` does with a request
 
 The resolver you write is the happy path. Everything else is applied around it, in
