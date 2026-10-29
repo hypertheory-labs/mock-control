@@ -173,6 +173,9 @@ production configuration:
 ]
 ```
 
+`assets` in a configuration **replaces** the base list; it doesn't merge with it. If your
+build options list other assets, repeat them here.
+
 **Measured** on an Angular 22 production build: nothing from mock-control, your handlers,
 or MSW is in the output, and neither is the worker file. A development build still has
 all of it.
