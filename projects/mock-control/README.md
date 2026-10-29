@@ -95,7 +95,7 @@ import { MockPanel } from '@hypertheory-labs/mock-control';
     <!-- ...the app... -->
     @if (isDev) {
       @defer (on idle) {
-        <app-mock-panel />
+        <mock-panel />
       }
     }
   `,
@@ -127,7 +127,7 @@ loaded" isn't the same as "not shipped."
 
 **One static import undoes this.** Importing `./mocks/browser` (or anything from it)
 anywhere outside those two places pulls it into the initial bundle. So does using
-`<app-mock-panel />` outside a `@defer` block.
+`<mock-panel />` outside a `@defer` block.
 
 ## What `configurable()` does with a request
 

@@ -4,7 +4,7 @@ import { EndpointConfig, EndpointMeta } from '../core/types';
 import { isDefault, MockControl, sameConfig } from './mock-control';
 
 @Component({
-  selector: 'app-mock-endpoint-settings',
+  selector: 'mock-endpoint-settings',
   imports: [FormField],
   template: `
     @let ep = endpoint();

@@ -7,7 +7,7 @@ type Tab = 'endpoints' | 'log';
 
 /** Dev-only drawer for changing how the MSW mocks behave at runtime. */
 @Component({
-  selector: 'app-mock-panel',
+  selector: 'mock-panel',
   imports: [EndpointSettings, RequestLog],
   template: `
     <div class="fixed bottom-4 left-4 z-40 flex items-center gap-2">
@@ -108,11 +108,11 @@ type Tab = 'endpoints' | 'log';
           @if (tab() === 'endpoints') {
             <div class="flex flex-col gap-2">
               @for (ep of control.endpoints(); track ep.id) {
-                <app-mock-endpoint-settings [endpoint]="ep" [config]="control.configs()[ep.id]" />
+                <mock-endpoint-settings [endpoint]="ep" [config]="control.configs()[ep.id]" />
               }
             </div>
           } @else {
-            <app-mock-request-log />
+            <mock-request-log />
           }
         </div>
 

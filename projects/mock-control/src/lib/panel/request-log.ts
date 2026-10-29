@@ -3,7 +3,7 @@ import { LogOutcome } from '../core/types';
 import { MockControl } from './mock-control';
 
 @Component({
-  selector: 'app-mock-request-log',
+  selector: 'mock-request-log',
   template: `
     <div class="flex justify-between items-center mb-2">
       <p class="text-sm opacity-80">Newest first. Only mocked endpoints are logged.</p>
