@@ -14,16 +14,20 @@ Published as `@hypertheory-labs/mock-control`. **Angular only.**
 
 - Angular 22, with MSW 2.
 - **Tailwind CSS v4 and daisyUI 5 in the app.** The panel uses their classes and ships no
-  styles of its own. This is a stopgap; see step 5 below.
+  styles of its own. This is a stopgap; see step 5 below. `ng new --style=tailwind` sets
+  up Tailwind; daisyUI is installed in step 1.
 
 ## Setup
 
 ### 1. Install
 
 ```sh
-npm install -D @hypertheory-labs/mock-control msw
+npm install -D @hypertheory-labs/mock-control msw@2 daisyui@5
 npx msw init public --save
 ```
+
+**Say `msw@2`.** Plain `msw` installs MSW 3, which npm allows even though it's outside
+the package's peer range, and step 4 then fails to compile.
 
 `msw init` copies `mockServiceWorker.js` into `public/`, so it's served from the root.
 In a multi-project workspace, use that project's `public/` directory.
@@ -34,6 +38,7 @@ In a multi-project workspace, use that project's `public/` directory.
 // src/mocks/handlers.ts
 import { HttpResponse } from 'msw';
 import { configurable } from '@hypertheory-labs/mock-control';
+// `catalog` (the API's base URL) and `findTitle` stand in for your own code.
 
 export const handlers = [
   configurable(
