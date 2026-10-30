@@ -1,6 +1,24 @@
 {
   "name": "@hypertheory-labs/mock-control",
   "version": "0.0.1",
+  "description": "Runtime-configurable MSW mocks for Angular apps, and a panel to slow, fail, empty, or hold requests while the app runs.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hypertheory-labs/mock-control.git",
+    "directory": "projects/mock-control"
+  },
+  "keywords": [
+    "angular",
+    "msw",
+    "mocks",
+    "mock-service-worker",
+    "devtools",
+    "testing"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@angular/common": "^22.2.0",
     "@angular/core": "^22.2.0",
